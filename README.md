@@ -35,9 +35,14 @@ If the user doesn’t have access, they’ll be redirected to the **AccessDenied
 ### 🛡 Security Advantages
 
 * Using `@attribute [Authorize]` prevents unauthorized users from even **rendering** the page, improving security.
-* Since the cookie is created on the **server side** and has `HttpOnly = true`:
-  💎 JavaScript or any malicious script **cannot read it**, making it resistant to **XSS attacks**.
-  💎 ASP.NET Core also includes built-in **Anti-Forgery protection**, keeping the cookie safe from **CSRF attacks**.
+* Since the cookie is created on the **server side** and has `HttpOnly = true`:* 
+
+💎 JavaScript or any malicious script **cannot read it**, making it resistant to **XSS attacks**.
+ChatGPT said:
+
+💎Because SameSite=Lax, the cookie is sent only with "safe" requests (such as GET).
+
+💎 ASP.NET Core also includes built-in **Anti-Forgery protection**, keeping the cookie safe from **CSRF attacks**.
 
 ---
 
