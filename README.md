@@ -1,4 +1,4 @@
-##Implementing Authentication 🔐 & Authorization 🔑 in **Blazor Server Without Identity**
+## Implementing Authentication 🔐 & Authorization 🔑 in **Blazor Server Without Identity**
 
 When the authentication logic is implemented in the backend, Identity should not directly access the database
 
