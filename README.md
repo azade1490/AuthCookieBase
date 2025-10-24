@@ -3,7 +3,6 @@
 When the authentication logic is implemented in the backend, Identity should not directly access the databas — this helps maintain a clean separation of responsibilities and consistent application logic.
 
 🧠 We know that Identity internally uses
-🧠 We know that Identity internally uses:
 
 ```csharp
 HttpContext.SignInAsync();
