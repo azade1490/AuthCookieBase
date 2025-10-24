@@ -1,4 +1,4 @@
-Implementing Authentication 🔐 & Authorization 🔑 in **Blazor Server Without Identity**
+##Implementing Authentication 🔐 & Authorization 🔑 in **Blazor Server Without Identity**
 
 When the authentication logic is implemented in the backend, Identity should not directly access the database
 
@@ -13,8 +13,11 @@ to sign in the user.
 🚀 Therefore, we can call this method directly ourselves — just like Identity does.
 
 👇 Here’s what happens:
+
 🌈 It creates an **authentication cookie** that stores user **claims**.
+
 🌈 The **authentication middleware** takes care of validating the cookie, keeping our code clean and simple.
+
 🌈 We only need to add this line at the top of any protected page:
 
 ```razor
