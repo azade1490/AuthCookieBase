@@ -1,0 +1,95 @@
+﻿@page "/adminDesktop"
+
+@attribute [Authorize(Roles ="Admin")]
+
+@rendermode InteractiveServer
+
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+
+@inject NavigationManager navigationManager
+@inject IHttpContextAccessor httpContextAccessor
+@inject AuthenticationStateProvider authenticationStateProvider
+
+<PageTitle>AdminDesktop</PageTitle>
+
+<h3 class="nav col-12 col-lg-auto me-lg-auto mb-2 justify-content-center mb-md-0">پنل مدیریت</h3>
+
+<ul class="nav col-12 col-lg-auto me-lg-auto mb-2 justify-content-center mb-md-0">
+    <li><a href="#" class="nav-link px-2 text-secondary">Home</a></li>
+    <li>
+        <NavLink class="nav-link" href="roles">
+            <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Roles
+        </NavLink>
+    </li>
+    <li>
+        <NavLink class="nav-link" href="users">
+            <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Users
+        </NavLink>
+    </li>
+</ul>
+
+        <p style="color:deeppink;font-weight:bold">اطلاعات AuthorizeView :</p>
+<AuthorizeView Roles="Admin">
+    <h3>این بخش فقط برای مدیران قابل نمایش است.</h3>
+</AuthorizeView>
+<AuthorizeView>
+            <Authorized>
+                <p>سلام , @context.User.Identity.Name !</p>
+                @* <p>آی دی  : @context.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value !</p>
+                <p>نقش  : @context.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value</p> *@
+            </Authorized>
+            <NotAuthorized>
+                <p> دسترسی به این بخش ندارید.</p>
+            </NotAuthorized>
+        </AuthorizeView>
+
+        <p style="color:deeppink;font-weight:bold">اطلاعات AuthenticationStateProvider :</p>
+        @if (authState.User.Identity.IsAuthenticated)
+        {
+            <p>سلام , @authState.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value !</p>
+            @*
+                <p>آی دی  : @authState.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value</p>
+                <p>نقش  : @authState.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value</p>
+             *@
+        }
+        else {
+            <p> وارد نشده اید</p>
+        }
+
+        <p style="color:deeppink;font-weight:bold">اطلاعات httpContextAccessor :</p>
+        @if (httpContextAccessor.HttpContext.User.Identity.IsAuthenticated)
+        {
+            <p>سلام , @httpContextAccessor.HttpContext!.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value !</p>
+            @*
+                <p>آی دی  : @httpContextAccessor.HttpContext!.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value!</p>
+                <p>نقش  : @httpContextAccessor.HttpContext!.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value</p>
+             *@
+        }
+        else
+        {
+            <p> وارد نشده اید</p>
+        }
+
+@code {
+    private bool isAuthentiated;
+    private string uniqueName;
+    private string nameid;
+    private string role;
+    private AuthenticationState authState;
+
+    protected override async Task OnInitializedAsync()
+    {
+        authState = await authenticationStateProvider.GetAuthenticationStateAsync();
+
+        isAuthentiated = authState.User.Identity.IsAuthenticated;
+        nameid = authState.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+        role = authState.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+        uniqueName = authState.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value;
+        //OR
+        uniqueName = authState.User.Identity.Name;
+
+    }
+       
+}

@@ -1,0 +1,26 @@
+﻿
+@rendermode InteractiveServer
+
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Authentication.Cookies
+@inject NavigationManager navigationManager
+@inject IHttpClientFactory httpClientFactory
+@inject IHttpContextAccessor httpContextAccessor
+
+<button type="button" @onclick="LogOutUser" class="btn me-2">LogOut Button</button>
+
+@code {
+    private async Task LogOutUser()
+    {
+        var Client = httpClientFactory.CreateClient("MyHttpClient");
+        var url = $"Account/LogOut/";
+
+        await Client.GetAsync(url);
+
+        await httpContextAccessor.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme); //✅Work
+        //httpContextAccessor.HttpContext?.Response.Cookies.Delete("access_Token");//✅work
+
+        navigationManager.NavigateTo($"/account/login");
+
+    }
+}
