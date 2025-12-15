@@ -1,0 +1,108 @@
+﻿@page "/account/register"
+
+@* برای این که به httpContext دسترسی داشته باشیم نباید صفحه ی لاگین را تعاملی کنیم و برای این که رویداد دکمه کار کند باید حتما از EditForm استفاده کنیم *@
+@* httpContext در StaticServerSide امکان تغییر دارد *@
+@* @rendermode InteractiveServer *@
+
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Authentication.Cookies
+@using Microsoft.AspNetCore.Components.Authorization
+
+@inject NavigationManager navigationManager
+@inject IHttpClientFactory httpClientFactory
+@inject IHttpContextAccessor httpContextAccessor
+@inject IClaimsPrincipalProvider claimsPrincipalProvider
+@inject IJSRuntime JS
+@inject AuthenticationStateProvider authenticationStateProvider
+
+<div class="row">
+    <div class="col-md-4">
+        <EditForm Model="registerDto" OnValidSubmit="RegisterUser" FormName="create">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger" />
+            <div class="form-group">
+                <label for="userName">UserName</label>
+                <InputText class="form-control" id="userName" @bind-Value="registerDto.UserName" />
+                <ValidationMessage For="() => registerDto.UserName" class="text-danger" />
+            </div>
+            <div class="form-group">
+                <label for="email">Email</label>
+                <InputText class="form-control" id="email" @bind-Value="registerDto.Email" />
+                <ValidationMessage For="() => registerDto.Email" class="text-danger" />
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <InputText class="form-control" id="password" @bind-Value="registerDto.Password" />
+                <ValidationMessage For="() => registerDto.Password" class="text-danger" />
+            </div>
+            <div class="form-group">
+                <label for="confirmPassword">ConfirmPassword</label>
+                <InputText class="form-control" id="confirmPassword" @bind-Value="registerDto.ConfirmPassword" />
+                <ValidationMessage For="() => registerDto.ConfirmPassword" class="text-danger" />
+
+            </div>
+            <div class="form-group">
+                <button type="submit" class="w-100 btn btn-lg btn-primary">Register</button>
+            </div>
+        </EditForm>
+    </div>
+</div>
+@code {
+    private AuthenticationState authState;
+
+    [SupplyParameterFromForm]
+    public RegisterDto registerDto { get; set; } = new();
+
+    private async Task RegisterUser()
+    {
+        var Client = httpClientFactory.CreateClient("MyHttpClient");
+        var url = $"Account/Register/";
+        var response = await Client.PostAsJsonAsync(url, registerDto);
+
+        if (response.IsSuccessStatusCode)
+        {
+            var tokenDto = await response.Content.ReadFromJsonAsync<TokenDto>();
+            var token = tokenDto.Token;
+
+            //لاگین خودکار بعد از ثبت نام
+
+            //با روش ایجاد کوکی access_Token توسط HttpContext که httpOnly هست
+            // httpContextAccessor.HttpContext.Response.Cookies.Append("access_Token", token, new CookieOptions //✅Work
+            //     {
+            //         HttpOnly = true,    //جلوگیری از دسترسی JavaScript به کوکی توکن
+            //         //Secure = true,     ///برای HTTPS
+            //         Expires = DateTimeOffset.UtcNow.AddDays(30), // زمان انقضا
+            //         SameSite = SameSiteMode.Lax
+            //     });
+
+            ClaimsPrincipal claimsPrincipal = claimsPrincipalProvider.GetClaimsPrincipal(tokenDto.Token);
+
+            // تنظیم کوکی احراز هویت
+            var authProperties = new AuthenticationProperties
+                {
+                //بدون نوشتن خط زیر طول عمر کوکی برابر Session است که یعنی با بستن مرورگر یا رفرش از بین می رود حتی اگر ExpiresUtc تنظیم شده باشد
+                    IsPersistent = true, // کوکی دائمی می‌شود مثلا اگر تیک "مرا به خاطر بسپار" زده شده باشد
+                    ExpiresUtc = DateTime.Now.AddDays(30) // زمان انقضای کوکی
+                };
+            await httpContextAccessor.HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, claimsPrincipal, authProperties);//✅Work
+
+
+            var role = claimsPrincipal.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+
+            //بعد از لاگین برای این که متد سازنده ی CustomAuthenticationStateProvider در اسکوپ جدید اجرا شود و AutoLogin انجام شود forceLoad را true می کنیم
+            // برای اینکه کوکی‌های جدید به سرور ارسال ‌شوند، باید forceLoad را true  کنیم
+            //وفتی صفحه ssr باشد Editform صفحه را رفرش میکند و نیازی به  forceLoad: true نیست
+            if (role == "Admin")
+                navigationManager.NavigateTo($"/adminDesktop", forceLoad: true);
+            if (role == "Member")
+                navigationManager.NavigateTo($"/memberDesktop", forceLoad: true);
+        }
+        else
+        {
+            var errorContent = await response.Content.ReadAsStringAsync();
+            Console.WriteLine($"Error Adding data: {response.StatusCode} - {errorContent}");
+        }
+    }
+
+}

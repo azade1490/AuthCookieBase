@@ -1,0 +1,146 @@
+﻿@inherits LayoutComponentBase
+
+@* Layout نمی تواند مقدار رندرمود InteractiveServer بگیرد *@
+@* مگر این که در App.razor رندر مود را به صورت عمومی تعیین کنی *@
+@* InvalidOperationException: Cannot pass the parameter 'Body' to component 'MainLayout' with rendermode 'InteractiveServerRenderMode'. This is because the parameter is of the delegate type 'Microsoft.AspNetCore.Components.RenderFragment', which is arbitrary code and cannot be serialized.*@
+
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Authentication.Cookies
+@using Microsoft.AspNetCore.Components.Authorization
+
+@inject NavigationManager navigationManager
+@inject IHttpClientFactory httpClientFactory
+@inject IHttpContextAccessor httpContextAccessor
+@inject AuthenticationStateProvider authenticationStateProvider
+
+<div class="page">
+    <div class="sidebar">
+        <NavMenu />
+    </div>
+
+    <main>
+        <div class="top-row px-4">
+            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
+        </div>
+
+        <div style="margin: auto;width: 500px;direction: rtl;">
+
+            @* زمانی که prerender در App.razor فعال (True) باشد ریدایرکت شدن به صفحاتی که دارای رندر مود InteractiveServer نیستند اطلاعات احراز هویت را پاک می کند *@
+            @* <AuthorizeView Roles="Admin"> *@
+
+            <p style="color:deeppink;font-weight:bold;font-weight:bold">اطلاعات AuthorizeView :</p>
+            <AuthorizeView>
+                <Authorized>
+                    @* <p>سلام , @context.User.Identity.Name !</p> *@
+                    <p>سلام , @context.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value !</p>
+                    @* 
+                        <p>آی دی  : @context.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value</p>
+                        <p>نقش  : @context.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value</p>
+                     *@
+
+                    @* @foreach (var claim in @context.User.Claims)
+                            {
+                                <p>@claim.Type</p>
+                                <p>@claim.Value</p>
+                            } *@
+
+                    @* در EditForm در AuthorizeView باید Context را مقداردهی کرد *@
+                    @*در صورت نیاز به داشتن چند EditForm در یک صفحه باید آنها را در کامپوننت های جدا تعریف کنیم و در صفحه صدا بزنیم ولی یکی در Layout و یکی در Page مشکلی ندارد*@
+                    <EditForm Model="logOutModel" OnSubmit="@LogOutUser" FormName="logOutForm" Context="EditContextLogOut">
+                        <button type="submit" class="btn btn-warning">LogOut</button>
+                    </EditForm>
+
+                    @* ✅Work *@
+                    @* <NavLink class="btn btn-warning" href="account/logout"> LogOut </NavLink> *@
+
+                    <NavLink class="btn btn-secondary" href="adminDesktop"> AdminDesktop </NavLink>
+                    <NavLink class="btn btn-secondary" href="memberDesktop"> MemberDesktop </NavLink>
+                </Authorized>
+                <NotAuthorized>
+                    <p> وارد نشده اید</p>
+                    <NavLink class="btn btn-primary" href="account/login"> Login </NavLink>
+                    <NavLink class="btn btn-primary" href="account/register"> Sign-up </NavLink>
+
+                </NotAuthorized>
+            </AuthorizeView>
+
+            <p style="color:deeppink;font-weight:bold">اطلاعات AuthenticationStateProvider :</p>
+            
+            @if (authState.User.Identity.IsAuthenticated)
+            {
+                <p>سلام , @authState.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value !</p>
+                @* 
+                    <p>آی دی  : @authState.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value</p>
+                    <p>نقش  : @authState.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value</p>
+                 *@
+            }
+            else
+            {
+                <p> وارد نشده اید</p>
+            } 
+
+            <p style="color:deeppink;font-weight:bold">اطلاعات httpContextAccessor :</p>
+            @if (httpContextAccessor.HttpContext.User.Identity.IsAuthenticated)//وقتی کوکی احراز هویت را دستی حذف کردم باز هم در درخواست های بعدی لاگین ماند
+            {
+                <p>سلام , @httpContextAccessor.HttpContext!.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value !</p>
+                @*
+                    <p>آی دی  : @httpContextAccessor.HttpContext!.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value!</p>
+                    <p>نقش  : @httpContextAccessor.HttpContext!.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value</p>
+                 *@
+            }
+            else
+            {
+                <p> وارد نشده اید</p>
+            }
+        </div>
+        <div style="margin: auto;width: 500px;direction: rtl;">
+            @Body
+        </div>
+    </main>
+</div>
+
+<div id="blazor-error-ui" data-nosnippet>
+    An unhandled error has occurred.
+    <a href="." class="reload">Reload</a>
+    <span class="dismiss">🗙</span>
+</div>
+
+@code {
+    public object logOutModel { get; set; } = new();
+
+    private bool isAuthentiated;
+    private string uniqueName;
+    private string nameid;
+    private string role;
+    private AuthenticationState authState;
+    protected override async Task OnInitializedAsync()
+    {
+        authState = await authenticationStateProvider.GetAuthenticationStateAsync();
+
+        isAuthentiated = authState.User.Identity.IsAuthenticated;
+        nameid = authState.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+        role = authState.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+        uniqueName = authState.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value;//این علامت سوال ها برای این هستند که وقتی بار اول متد OnInitializedAsync اجرا می شود نال برمی گردد خطا ندهد.
+        //OR
+        uniqueName = authState.User.Identity.Name;
+        //OR
+        uniqueName = httpContextAccessor.HttpContext.Request.Cookies["access_Token"]?.Replace("\"", "");//این علامت سوال ها برای این هستند که وقتی کوکی وجود نداشت و نال برمی گردد خطا ندهد.
+        
+    }
+
+    // این رویداد اگر async void تعریف شود خطای httpContextAccessor نال است می دهد
+    private async Task LogOutUser()
+    {
+        var Client = httpClientFactory.CreateClient("MyHttpClient");
+        var url = $"Account/LogOut/";
+        await Client.GetAsync(url);
+
+        await httpContextAccessor.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme); //✅Work
+        //httpContextAccessor.HttpContext?.Response.Cookies.Delete("access_Token");//✅work
+
+        navigationManager.NavigateTo($"/account/login");
+
+    }
+
+}
