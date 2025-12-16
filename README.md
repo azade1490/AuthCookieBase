@@ -50,3 +50,6 @@ Because `HttpContext` can only be modified in **static server-side rendering (st
 you should **not specify a `rendermode`** for the login page, so it defaults to static SSR.
 
 > ⚠️ Note: Since static SSR pages are not interactive and events don’t work there, you must use an **`EditForm`** component for handling the login form submission.
+
+🔚🏁 Finally:
+We can customize the AuthenticationStateProvider using the authentication information from this cookie.
